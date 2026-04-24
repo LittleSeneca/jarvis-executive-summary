@@ -5,9 +5,15 @@
 aws_region  = "us-east-1"
 aws_profile = ""          # blank = default credential chain
 
-# Networking — use "default" to auto-discover the account's default VPC,
-# or provide a specific VPC ID (e.g. "vpc-0abc1234def567890")
-vpc_id = "default"
+# Networking
+# vpc_id: use "default" for the account default VPC, or a specific VPC ID.
+# subnet_ids: explicit private subnet IDs (overrides VPC lookup). Leave empty
+#   to auto-discover all subnets in the VPC.
+# assign_public_ip: false for private subnets with NAT gateway (recommended);
+#   true only if using public subnets without a NAT gateway.
+vpc_id      = "default"
+subnet_ids  = []   # e.g. ["subnet-aaa", "subnet-bbb", "subnet-ccc"]
+assign_public_ip = false
 
 # Schedule — EventBridge cron + IANA timezone
 # cron(Minutes Hours Day-of-month Month Day-of-week Year)

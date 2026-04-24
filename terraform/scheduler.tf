@@ -18,7 +18,7 @@ resource "aws_scheduler_schedule" "jarvis_daily" {
       launch_type         = "FARGATE"
 
       network_configuration {
-        assign_public_ip = true
+        assign_public_ip = var.assign_public_ip
         security_groups  = [aws_security_group.jarvis_task.id]
         subnets          = local.subnet_ids
       }

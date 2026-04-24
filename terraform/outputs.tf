@@ -35,7 +35,7 @@ output "manual_run_command" {
       --cluster ${aws_ecs_cluster.jarvis.name} \
       --task-definition ${aws_ecs_task_definition.jarvis.family} \
       --launch-type FARGATE \
-      --network-configuration "awsvpcConfiguration={subnets=[${join(",", local.subnet_ids)}],securityGroups=[${aws_security_group.jarvis_task.id}],assignPublicIp=ENABLED}" \
+      --network-configuration "awsvpcConfiguration={subnets=[${join(",", local.subnet_ids)}],securityGroups=[${aws_security_group.jarvis_task.id}],assignPublicIp=${var.assign_public_ip ? "ENABLED" : "DISABLED"}}" \
       --region ${var.aws_region}
   EOT
 }
