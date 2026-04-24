@@ -4,6 +4,32 @@ A containerized Python tool that pulls the last 24 hours of activity from a conf
 
 One container, one run, one well-formatted morning digest. No daemon, no scheduler, no loop.
 
+## Sample output
+
+> **Jarvis — Morning Brief — Friday, April 25 2026**
+> *Run completed in 15.7s · 10 plugins succeeded · 0 failed*
+>
+> ---
+>
+> :shield: **Security** — 6 CRITICAL findings for CVE-2026-XXXXX require same-day remediation across 3 affected services.
+>
+> :white_check_mark: **Compliance** — 9 of 50 monitors failing in Drata, including 2 HIGH-priority failures: *Employees Have Unique Email Accounts* and *MFA on Identity Provider*.
+>
+> :globe_with_meridians: **Infrastructure** — 50 malicious URLs and 4 new KEV entries tracked in the last 24 hours. Dominant malware families: ClearFake, Mozi, QuasarRAT.
+>
+> :email: **Email** — VendorCloud monitoring requires attention due to 3 critical CPU utilization alerts. A. Chen and J. Rivera are awaiting responses.
+>
+> :chart_with_upwards_trend: **Market** — NVDA had a significant single-day move of +4.75% and is near its 52-week high (52w position: 0.97).
+>
+> :newspaper: **Geopolitics** — Developing situation in the Middle East and heightened shipping-lane tensions could affect US business operations and global markets today.
+>
+> :bust_in_silhouette: **Personnel** — J. Smith requires attention for policy acknowledgment, MFA enrollment, and 2 other open compliance items.
+>
+> :partly_sunny: **Weather** — Expect mainly clear conditions today with a chilly temperature, turning overcast by end of day and continuing into tomorrow.
+> - Current: 45°, feels like 40° — Mainly clear, humidity 40%, wind 4 mph
+> - Today: high 49° / low 30°, 1% chance of precipitation — :cloud: Overcast
+> - Tomorrow: high 50° / low 32°, 3% chance of precipitation — :cloud: Overcast
+
 ## What it does
 
 On startup, Jarvis:
