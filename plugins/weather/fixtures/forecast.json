@@ -1,0 +1,89 @@
+{
+  "cod": "200",
+  "message": 0,
+  "cnt": 8,
+  "list": [
+    {
+      "dt": 1745409600,
+      "main": {"temp": 58.3, "feels_like": 54.1, "temp_min": 52.0, "temp_max": 64.0, "pressure": 1012, "humidity": 81},
+      "weather": [{"id": 500, "main": "Rain", "description": "light rain", "icon": "10d"}],
+      "clouds": {"all": 90},
+      "wind": {"speed": 12.0, "deg": 220},
+      "pop": 0.75,
+      "dt_txt": "2026-04-23 12:00:00"
+    },
+    {
+      "dt": 1745420400,
+      "main": {"temp": 62.1, "feels_like": 59.0, "temp_min": 58.0, "temp_max": 64.0, "pressure": 1013, "humidity": 72},
+      "weather": [{"id": 803, "main": "Clouds", "description": "broken clouds", "icon": "04d"}],
+      "clouds": {"all": 75},
+      "wind": {"speed": 9.0, "deg": 200},
+      "pop": 0.35,
+      "dt_txt": "2026-04-23 15:00:00"
+    },
+    {
+      "dt": 1745431200,
+      "main": {"temp": 55.8, "feels_like": 52.0, "temp_min": 50.0, "temp_max": 58.0, "pressure": 1015, "humidity": 68},
+      "weather": [{"id": 801, "main": "Clouds", "description": "few clouds", "icon": "02n"}],
+      "clouds": {"all": 20},
+      "wind": {"speed": 7.0, "deg": 190},
+      "pop": 0.10,
+      "dt_txt": "2026-04-23 18:00:00"
+    },
+    {
+      "dt": 1745442000,
+      "main": {"temp": 48.2, "feels_like": 44.0, "temp_min": 46.0, "temp_max": 50.0, "pressure": 1016, "humidity": 62},
+      "weather": [{"id": 800, "main": "Clear", "description": "clear sky", "icon": "01n"}],
+      "clouds": {"all": 5},
+      "wind": {"speed": 5.0, "deg": 180},
+      "pop": 0.05,
+      "dt_txt": "2026-04-23 21:00:00"
+    },
+    {
+      "dt": 1745496000,
+      "main": {"temp": 55.0, "feels_like": 52.0, "temp_min": 52.0, "temp_max": 58.0, "pressure": 1017, "humidity": 60},
+      "weather": [{"id": 800, "main": "Clear", "description": "clear sky", "icon": "01d"}],
+      "clouds": {"all": 5},
+      "wind": {"speed": 6.0, "deg": 185},
+      "pop": 0.08,
+      "dt_txt": "2026-04-24 09:00:00"
+    },
+    {
+      "dt": 1745507000,
+      "main": {"temp": 68.5, "feels_like": 66.0, "temp_min": 65.0, "temp_max": 72.0, "pressure": 1017, "humidity": 55},
+      "weather": [{"id": 800, "main": "Clear", "description": "clear sky", "icon": "01d"}],
+      "clouds": {"all": 10},
+      "wind": {"speed": 8.0, "deg": 200},
+      "pop": 0.10,
+      "dt_txt": "2026-04-24 12:00:00"
+    },
+    {
+      "dt": 1745518000,
+      "main": {"temp": 71.2, "feels_like": 69.0, "temp_min": 68.0, "temp_max": 73.0, "pressure": 1016, "humidity": 50},
+      "weather": [{"id": 801, "main": "Clouds", "description": "few clouds", "icon": "02d"}],
+      "clouds": {"all": 15},
+      "wind": {"speed": 9.0, "deg": 210},
+      "pop": 0.05,
+      "dt_txt": "2026-04-24 15:00:00"
+    },
+    {
+      "dt": 1745529000,
+      "main": {"temp": 63.4, "feels_like": 61.0, "temp_min": 60.0, "temp_max": 65.0, "pressure": 1016, "humidity": 53},
+      "weather": [{"id": 800, "main": "Clear", "description": "clear sky", "icon": "01n"}],
+      "clouds": {"all": 5},
+      "wind": {"speed": 7.0, "deg": 195},
+      "pop": 0.05,
+      "dt_txt": "2026-04-24 18:00:00"
+    }
+  ],
+  "city": {
+    "id": 4511254,
+    "name": "Dublin",
+    "coord": {"lat": 40.0992, "lon": -83.1141},
+    "country": "US",
+    "population": 49328,
+    "timezone": -14400,
+    "sunrise": 1745398800,
+    "sunset": 1745447400
+  }
+}

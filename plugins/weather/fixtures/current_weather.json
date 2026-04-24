@@ -1,0 +1,22 @@
+{
+  "coord": {"lon": -83.1141, "lat": 40.0992},
+  "weather": [{"id": 500, "main": "Rain", "description": "light rain", "icon": "10d"}],
+  "base": "stations",
+  "main": {
+    "temp": 58.3,
+    "feels_like": 54.1,
+    "temp_min": 52.0,
+    "temp_max": 64.0,
+    "pressure": 1012,
+    "humidity": 81
+  },
+  "visibility": 10000,
+  "wind": {"speed": 12.0, "deg": 220},
+  "clouds": {"all": 90},
+  "dt": 1745408400,
+  "sys": {"type": 2, "id": 2001704, "country": "US", "sunrise": 1745398800, "sunset": 1745447400},
+  "timezone": -14400,
+  "id": 4511254,
+  "name": "Dublin",
+  "cod": 200
+}
