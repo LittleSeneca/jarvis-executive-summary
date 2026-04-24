@@ -7,7 +7,7 @@ Fetches PR activity across configured orgs and the user's code volume from yeste
 | Env var | Description |
 |---------|-------------|
 | `GITHUB_TOKEN` | Personal access token with `repo` + `read:org` scopes |
-| `GITHUB_USER` | GitHub username to report on (e.g. `GrahamBrooks`) |
+| `GITHUB_USER` | GitHub username to report on (e.g. `octocat`) |
 
 ## Optional configuration
 
@@ -41,7 +41,7 @@ Total API cost: 2–3 GraphQL requests per run (PR buckets + contributions + ali
 ```json
 {
   "window_hours": 24,
-  "user": "GrahamBrooks",
+  "user": "octocat",
   "prs": {
     "new": [{ "repo": "...", "number": 42, "title": "...", "author": "...", "url": "...", "draft": false, "reviewers": [] }],
     "closed": [{ "repo": "...", "number": 39, "title": "...", "merged": true, "merged_by": "...", "url": "..." }],
@@ -50,7 +50,7 @@ Total API cost: 2–3 GraphQL requests per run (PR buckets + contributions + ali
   "code_volume_yesterday": {
     "date": "2026-04-22",
     "commits": 11,
-    "repos_touched": ["littleseneca/jarvis-executive-summary"],
+    "repos_touched": ["my-org/jarvis-executive-summary"],
     "additions": 412,
     "deletions": 178,
     "net": 234

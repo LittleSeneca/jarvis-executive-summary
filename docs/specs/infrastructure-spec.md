@@ -1,7 +1,7 @@
 # Jarvis — Infrastructure Specification
 
 **Status:** Draft — under review  
-**Author:** Graham Brooks  
+**Author:** operator-defined  
 **Date:** 2026-04-24  
 **Scope:** CI/CD image pipeline, AWS scheduled execution, Terraform layout
 

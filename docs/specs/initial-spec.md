@@ -1,7 +1,7 @@
 # Jarvis — Executive Summary Agent
 
 **Status:** Draft v0.3
-**Owner:** Graham Brooks
+**Owner:** operator-defined
 **Last updated:** 2026-04-23
 
 ---
@@ -221,13 +221,13 @@ DRATA_BASE_URL=https://public-api.drata.com
 GMAIL_CLIENT_ID=...
 GMAIL_CLIENT_SECRET=...
 GMAIL_REFRESH_TOKEN=...
-GMAIL_USER=graham.brooks@avatarfleet.com
+GMAIL_USER=user@example.com
 GMAIL_QUERY=in:inbox newer_than:1d    # default: everything in the inbox from the last 24h
 
 # --- GitHub ---
 GITHUB_TOKEN=ghp_...                 # PAT with repo + read:org scopes (or fine-grained equivalent)
-GITHUB_USER=GrahamBrooks             # whose activity to report on
-GITHUB_ORGS=avatarfleet               # comma-separated; PRs across these orgs
+GITHUB_USER=octocat                  # whose activity to report on
+GITHUB_ORGS=my-org                    # comma-separated; PRs across these orgs
 GITHUB_REPOS=                        # optional comma-separated owner/repo overrides
 GITHUB_STALE_PR_DAYS=14              # PR counted as "stale" if open with no update this long
 
@@ -490,19 +490,19 @@ Each plugin ships with its own `plugin.py`, `auth.py`, `prompt.md`, and `README.
 
 ### 6.6 GitHub
 
-**What it pulls:** a single payload covering PR activity and Graham's own code volume over the last 24 hours.
+**What it pulls:** a single payload covering PR activity and the configured user's own code volume over the last 24 hours.
 
 - **New PRs:** opened in the window across `GITHUB_ORGS` (optionally restricted to `GITHUB_REPOS`). Captures: number, title, repo, author, draft flag, reviewers, URL.
 - **Closed PRs:** closed or merged in the window. Captures the same plus `merged_at` vs `closed_at` so the prompt can distinguish merged-vs-abandoned.
-- **Stale PRs:** still open with no update in the last `GITHUB_STALE_PR_DAYS` days (default 14). This is the biggest signal for "something Graham should nudge."
-- **Graham's code volume (previous day):** aggregate lines added and lines deleted across all commits authored by `GITHUB_USER` on the previous calendar day (UTC). Computed entirely via GraphQL (see below). Also includes: number of commits, number of distinct repos touched.
+- **Stale PRs:** still open with no update in the last `GITHUB_STALE_PR_DAYS` days (default 14). This is the biggest signal for "something the operator should nudge."
+- **Configured user's code volume (previous day):** aggregate lines added and lines deleted across all commits authored by `GITHUB_USER` on the previous calendar day (UTC). Computed entirely via GraphQL (see below). Also includes: number of commits, number of distinct repos touched.
 
 **Payload shape (plugin-defined):**
 
 ```json
 {
   "window_hours": 24,
-  "user": "GrahamBrooks",
+  "user": "octocat",
   "prs": {
     "new":    [ { "repo": "...", "number": 42, "title": "...", "author": "...", "url": "...", "draft": false, "reviewers": ["..."] } ],
     "closed": [ { "repo": "...", "number": 39, "merged": true,  "merged_by": "...", "url": "..." } ],
@@ -511,7 +511,7 @@ Each plugin ships with its own `plugin.py`, `auth.py`, `prompt.md`, and `README.
   "code_volume_yesterday": {
     "date": "2026-04-22",
     "commits": 11,
-    "repos_touched": ["avatarfleet/jarvis-executive-summary", "avatarfleet/api-core"],
+    "repos_touched": ["my-org/jarvis-executive-summary", "my-org/api-core"],
     "additions": 412,
     "deletions": 178,
     "net": 234
@@ -545,14 +545,14 @@ Step B: a single GraphQL request with one aliased sub-query per repo, pulling co
 
 ```graphql
 query CodeVolume($since: GitTimestamp!, $until: GitTimestamp!, $author: ID!) {
-  r0: repository(owner: "avatarfleet", name: "jarvis-executive-summary") {
+  r0: repository(owner: "my-org", name: "jarvis-executive-summary") {
     defaultBranchRef { target { ... on Commit {
       history(since: $since, until: $until, author: { id: $author }) {
         nodes { additions deletions committedDate }
       }
     } } }
   }
-  r1: repository(owner: "avatarfleet", name: "api-core") { ... }
+  r1: repository(owner: "my-org", name: "api-core") { ... }
   # ... one alias per repo from step A
 }
 ```
@@ -561,7 +561,7 @@ The plugin sums `additions` and `deletions` across all returned commits, counts 
 
 PR lists still cap at 50 per category to protect prompt size. Commit stats never reach the LLM — only the aggregate totals do.
 
-**Prompt focus:** "How many PRs opened/closed/stalled overnight, which stale PRs have been sitting the longest, how much code Graham shipped yesterday framed as a one-liner (e.g. '11 commits across 2 repos, +412/-178'). Don't editorialize code volume — just report it." Temperature: 0.2.
+**Prompt focus:** "How many PRs opened/closed/stalled overnight, which stale PRs have been sitting the longest, how much code the user shipped yesterday framed as a one-liner (e.g. '11 commits across 2 repos, +412/-178'). Don't editorialize code volume — just report it." Temperature: 0.2.
 
 ### 6.7 Weather
 
