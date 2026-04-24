@@ -16,6 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # ghcr.io requires a fully lowercase image name. github.repository_owner
+      # preserves original casing (e.g. LittleSeneca), so we normalise it here.
+      - name: Set lowercase image name
+        run: echo "IMAGE=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/jarvis-executive-summary" >> "$GITHUB_ENV"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -36,8 +41,8 @@ jobs:
           push: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
           platforms: linux/amd64
           tags: |
-            ghcr.io/${{ github.repository_owner }}/jarvis-executive-summary:latest
-            ghcr.io/${{ github.repository_owner }}/jarvis-executive-summary:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
           # GHA layer cache — mode=max exports all intermediate layers so the
           # pip-install layer survives across PR commits (invalidated only when
           # pyproject.toml changes, not on source-only edits).
