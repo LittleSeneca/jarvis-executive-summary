@@ -55,12 +55,61 @@ Everything lives in a single `.env` file mounted into the container. Plugin env 
 
 ## Running it
 
-The container is a one-shot: start it, it runs, it exits. How you invoke it is entirely up to you — cron, a scheduled ECS task, manual `docker run`, or any other trigger. This project ships:
+### Locally
 
-- A `Dockerfile`
-- A `docker-compose.yml` for local runs
+```bash
+# Dry run — prints the digest to stdout instead of posting to Slack
+JARVIS_DRY_RUN=true python -m jarvis
 
-No infrastructure-as-code, no CronJob manifests, no EventBridge rules. Those belong elsewhere.
+# Full run via Docker Compose
+docker compose run --rm jarvis
+```
+
+### In AWS (production)
+
+The `terraform/` directory contains everything needed to run Jarvis on a daily schedule in AWS. The setup has three moving parts:
+
+**1. Image builds (GitHub Actions)**  
+Every commit to a pull request builds the Docker image as an acceptance check. Merging to `main` builds and pushes it to the public GitHub Container Registry (`ghcr.io/littleseneca/jarvis-executive-summary:latest`). No AWS credentials are needed in CI — the image contains no secrets.
+
+**2. Secrets (AWS SSM Parameter Store)**  
+All credentials from your local `.env` are synced to SSM Parameter Store under `/jarvis/<VAR_NAME>` as `SecureString` entries. This happens automatically on `terraform apply` whenever `.env` changes. The ECS task fetches them at launch and injects them as environment variables — the container image itself stays secret-free.
+
+**3. Scheduled execution (AWS EventBridge + ECS Fargate)**  
+An EventBridge Scheduler fires on a configurable timezone-aware cron and calls ECS `RunTask`. Fargate pulls the latest image from ghcr.io, fetches secrets from SSM, runs the container, and exits. There is no standing compute — you only pay for the ~5 minutes the task runs (~$0.12/month at the default sizing).
+
+```
+ghcr.io ──pull── ECS Fargate task ──reads── SSM Parameter Store
+                       │
+                  posts digest
+                       │
+                     Slack
+```
+
+**First-time deploy:**
+
+```bash
+cd terraform
+cp terraform.tfvars.example terraform.tfvars   # fill in region, VPC, subnets, schedule
+terraform init
+terraform apply                                 # creates all AWS resources + syncs .env to SSM
+terraform output manual_run_command             # get a one-off run command for testing
+```
+
+**Triggering a manual run:**
+
+```bash
+terraform -chdir=terraform output -raw manual_run_command | bash
+```
+
+**Watching logs:**
+
+```bash
+aws logs tail /aws/jarvis/run-logs --follow --region <your-region>
+```
+
+See [`terraform/terraform.tfvars.example`](terraform/terraform.tfvars.example) for all configurable options (region, schedule time and timezone, VPC/subnet targeting, CPU/memory sizing).  
+See [`docs/specs/infrastructure-spec.md`](docs/specs/infrastructure-spec.md) for the full infrastructure design document.
 
 Dry-run mode (`JARVIS_DRY_RUN=true`) prints the rendered digest to stdout instead of posting to Slack — useful for prompt iteration.
 

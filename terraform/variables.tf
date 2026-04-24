@@ -16,6 +16,18 @@ variable "vpc_id" {
   default     = "default"
 }
 
+variable "subnet_ids" {
+  description = "Explicit subnet IDs for ECS tasks. When set, overrides the VPC subnet lookup. Required when using private subnets in a shared VPC."
+  type        = list(string)
+  default     = []
+}
+
+variable "assign_public_ip" {
+  description = "Assign a public IP to ECS task ENIs. Set false for private subnets with a NAT gateway; true for public subnets without NAT."
+  type        = bool
+  default     = false
+}
+
 variable "schedule_cron" {
   description = "EventBridge Scheduler cron expression, evaluated in schedule_timezone"
   type        = string
