@@ -22,11 +22,11 @@ Metadata: {{ metadata }}
 **Output format (use exactly this markdown structure):**
 
 ### :shield: AWS SecurityHub
-_<one-line headline: total findings, most severe issue>_
+_<one-line headline: **N** CRITICAL, **N** HIGH findings — most severe issue>_
 
-- :red_circle: <CRITICAL finding summary — resource type, remediation pointer if obvious>
-- :large_orange_circle: <HIGH finding summary>
+- :red_circle: **CRITICAL** — **<resource type>**: <finding summary; bold any CVE ID or named vulnerability; include remediation pointer if obvious>
+- :large_orange_circle: **HIGH** — **<resource type>**: <finding summary>
 - ...
-- <one line for MEDIUM/LOW/INFORMATIONAL counts>
+- <one line for MEDIUM/LOW/INFORMATIONAL counts, bolding the numbers>
 
-:rotating_light: **Attention:** <only if CRITICAL findings or IAM/public-access issues present — otherwise omit>
+:rotating_light: **Attention:** <only if CRITICAL findings or IAM/public-access issues present — bold the specific resource and finding — otherwise omit>

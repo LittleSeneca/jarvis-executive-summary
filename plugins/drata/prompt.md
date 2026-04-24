@@ -11,17 +11,17 @@ Drata payload:
 Output format — follow exactly:
 
 ### :shield: Drata
-_<one-line headline: X of Y monitors failing, Z unhealthy personnel>_
+_<one-line headline: **X** of **Y** monitors failing, **Z** unhealthy personnel>_
 
-**Monitors** (<total> total — <by_status breakdown, e.g. "8 FAILED, 110 PASSED, 2 PENDING">):
+**Monitors** (**<total>** total — <by_status breakdown, e.g. "**8 FAILED**, 110 PASSED, 2 PENDING">):
 *(Failed monitor details are shown in the table below — do not list them individually here)*
-- Summarise in one sentence what the HIGH-priority failures relate to (e.g. "2 HIGH-priority failures: email uniqueness and MFA"). If none failed, say ":white_check_mark: All monitors passing".
+- Summarise in one sentence what the HIGH-priority failures relate to (e.g. "**2 HIGH**-priority failures: **email uniqueness** and **MFA**"). If none failed, say ":white_check_mark: All monitors passing".
 
-**Unhealthy personnel** (<count> current employees/contractors):
-- :bust_in_silhouette: <name — failing_checks (human-readable, one line each, up to 10; if more say "and N more")>
+**Unhealthy personnel** (**<count>** current employees/contractors):
+- :bust_in_silhouette: **<name>** — <failing_checks (human-readable, one line each, up to 10; if more say "and N more")>
 - If none, say ":white_check_mark: No unhealthy personnel"
 
-:rotating_light: **Attention:** <include only if: any HIGH-priority FAILED monitor exists, or unhealthy personnel count > 0. Be specific. Omit this line entirely if nothing triggers.>
+:rotating_light: **Attention:** <include only if: any HIGH-priority FAILED monitor exists, or unhealthy personnel count > 0. Be specific — bold the monitor name or person name. Omit this line entirely if nothing triggers.>
 
 Rules:
 - Only use names, descriptions, and counts that are present in the payload.

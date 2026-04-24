@@ -13,6 +13,7 @@ import httpx
 __all__ = ["OSINTClients", "get_authenticated_clients"]
 
 _TIMEOUT = 30.0
+_OTX_TIMEOUT = 15.0  # OTX is slow; fail fast rather than blocking the whole plugin
 _USER_AGENT = "Jarvis/1.0 (+https://github.com/LittleSeneca/jarvis-executive-summary; osint-plugin)"
 
 
@@ -69,7 +70,7 @@ async def get_authenticated_clients() -> OSINTClients:
     if otx_key:
         otx = httpx.AsyncClient(
             headers={**base_headers, "X-OTX-API-KEY": otx_key},
-            timeout=_TIMEOUT,
+            timeout=_OTX_TIMEOUT,
             follow_redirects=True,
         )
 

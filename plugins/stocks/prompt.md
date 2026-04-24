@@ -22,14 +22,14 @@ You are summarizing stock market data for an executive daily brief. The data bel
 
 6. If `market_state` is `PRE`, `POST`, or `CLOSED`, phrase accordingly (e.g. "as of yesterday's close" rather than "today").
 
+7. Do not repeat raw price or change numbers in bullets — a formatted table is appended automatically below your output.
+
 **Output format (use exactly this markdown structure):**
 
 ### :chart_with_upwards_trend: Stocks
-_<one-line market pulse — direction of indices and VIX reading>_
+_<one-line market pulse — direction of indices and VIX reading; bold the VIX value if above 25>_
 
-*(Price and change data is shown in the table below — do not repeat raw numbers in bullets)*
+- **<TICKER>**: <brief observation — bold the % change and any named catalyst (e.g. **+4.2%** on **earnings beat**)>
+- <news theme if multiple tickers share a driver — bold the shared catalyst (e.g. **GPU supply news**)>
 
-- <only call out tickers with day change > ±3%, 52-week extreme (position > 0.95 or < 0.05), or volume_ratio > 1.5 — one bullet per notable ticker with a brief observation>
-- <news theme if multiple tickers share a driver>
-
-:rotating_light: **Attention:** <optional — only if a significant move, 52-week extreme, or volume spike warrants the reader's eyes today>
+:rotating_light: **Attention:** <optional — only if a significant move, 52-week extreme, or volume spike warrants the reader's eyes today; bold the ticker and the specific move>

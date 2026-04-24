@@ -544,7 +544,7 @@ class OSINTPlugin(DataSourcePlugin):
     display_name = "Threat Intel"
     required_env_vars: list[str] = []
     temperature = 0.1
-    max_tokens = 600
+    max_tokens = 900
 
     async def fetch(self, window_hours: int) -> FetchResult:
         """Fetch the last ``window_hours`` of threat intelligence from all enabled sources."""
@@ -722,24 +722,24 @@ class OSINTPlugin(DataSourcePlugin):
         from tabulate import tabulate
 
         sources = payload.get("sources", {})
-        labels = {
-            "cisa_kev": "CISA KEV",
-            "nvd": "NVD CVEs",
-            "urlhaus": "URLhaus",
-            "threatfox": "ThreatFox",
-            "feodo": "Feodo",
-            "otx": "OTX",
-        }
-        rows = []
-        for key, label in labels.items():
-            src = sources.get(key, {})
-            status = src.get("status", "—")
-            if status == "skipped":
-                continue
-            count = src.get("count", src.get("total_online")) if status == "ok" else "—"
-            rows.append([label, count, status])
-
-        if not rows:
+        kev = sources.get("cisa_kev", {})
+        items = kev.get("items", []) if kev.get("status") == "ok" else []
+        if not items:
             return None
-        table = tabulate(rows, headers=["Source", "Items", "Status"], tablefmt="outline", colalign=("left", "right", "left"))
+
+        rows = [
+            [
+                item.get("cve", "—"),
+                f"{item.get('vendor', '')} / {item.get('product', '')}",
+                item.get("due", "—"),
+                "Yes" if item.get("ransomware") else "No",
+            ]
+            for item in items
+        ]
+        table = tabulate(
+            rows,
+            headers=["CVE", "Product", "Due Date", "Ransomware"],
+            tablefmt="outline",
+            colalign=("left", "left", "left", "left"),
+        )
         return f"```\n{table}\n```"

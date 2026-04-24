@@ -21,12 +21,12 @@ Metadata: {{ metadata }}
 **Output format (use exactly this markdown structure):**
 
 ### :moneybag: AWS Billing
-_<one-line headline: yesterday's spend and MTD pacing vs prior month>_
+_<one-line headline: yesterday's spend and MTD pacing vs prior month — bold the dollar amounts and delta %>_
 
-- Yesterday (<date>): $<yesterday.total>
+- Yesterday (**<date>**): **$<yesterday.total>**
 
-- MTD: $<mtd.total> vs $<prior_mtd> prior month (<pct_delta>% delta)
-- QTD: $<qtd.total> vs $<prior_qtd_sameperiod> same-period last quarter (<pct_delta>% delta)
-- Forecast: month-end $<forecast.month_end>, quarter-end $<forecast.quarter_end>
+- MTD: **$<mtd.total>** vs $<prior_mtd> prior month (**<pct_delta>%** delta)
+- QTD: **$<qtd.total>** vs $<prior_qtd_sameperiod> same-period last quarter (**<pct_delta>%** delta)
+- Forecast: month-end **$<forecast.month_end>**, quarter-end **$<forecast.quarter_end>**
 
-:rotating_light: **Attention:** <only if MTD >15% above prior or anomalous daily spend — otherwise omit>
+:rotating_light: **Attention:** <only if MTD >15% above prior or anomalous daily spend — bold the specific amount and % that triggered it — otherwise omit>
