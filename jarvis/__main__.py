@@ -15,7 +15,7 @@ async def _main() -> None:
     settings = get_settings()
     configure_logging(settings.log_level)
 
-    plugins = load_plugins(settings.enabled_plugins)
+    plugins = load_plugins(settings.plugin_names)
 
     queue = GroqQueue(
         api_key=settings.groq_api_key,

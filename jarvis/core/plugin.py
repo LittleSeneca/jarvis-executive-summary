@@ -64,3 +64,21 @@ class DataSourcePlugin(ABC):
     def redact(self, payload: Any) -> Any:
         """Scrub sensitive fields from payload before it is sent to Groq."""
         return payload
+
+    def slack_table_block(self, payload: Any) -> dict | None:
+        """Return a Slack table block built from the raw payload, or None.
+
+        Only one table block is allowed per Slack message and it is always
+        appended at the bottom. Override in plugins that have genuinely tabular
+        data (e.g. server metrics). The default returns None.
+        """
+        return None
+
+    def format_table(self, payload: Any) -> str | None:
+        """Return a pre-formatted ASCII table string (in a code fence) to append
+        after the LLM summary, or None if this plugin has no tabular data.
+
+        The string should include the opening and closing triple-backtick fences
+        so it renders in monospace inside Slack.
+        """
+        return None

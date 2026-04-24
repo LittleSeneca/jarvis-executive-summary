@@ -10,7 +10,7 @@ from jarvis.core.exceptions import GroqError, PluginFetchError, SlackDeliveryErr
 from jarvis.core.groq_queue import GroqQueue
 from jarvis.core.plugin import DataSourcePlugin, FetchResult
 from jarvis.core.slack import PluginSummary, build_message, post_message, write_markdown_file
-from jarvis.core.summarizer import summarize
+from jarvis.core.summarizer import summarize, synthesize_executive_summary
 
 __all__ = ["PluginOutcome", "run"]
 
@@ -67,7 +67,8 @@ async def run(
         *[_fetch_one(p, settings.run_window_hours) for p in plugins]
     )
 
-    # Summarize successful fetches through the queue
+    # Summarize successful fetches through the queue, then synthesize an overview
+    exec_summary: str | None = None
     async with groq_queue:
         summarize_tasks = []
         for outcome in outcomes:
@@ -78,13 +79,30 @@ async def run(
         if summarize_tasks:
             await asyncio.gather(*summarize_tasks)
 
+        successful_summaries = [o.summary for o in outcomes if o.ok and o.summary]
+        if successful_summaries:
+            try:
+                exec_summary = await synthesize_executive_summary(
+                    successful_summaries, groq_queue, settings.groq_model
+                )
+            except Exception:
+                log.warning("Executive summary generation failed; proceeding without it")
+
     # Build per-plugin summary objects for Slack
     plugin_summaries: list[PluginSummary] = []
     for outcome in outcomes:
         if outcome.ok and outcome.summary:
+            markdown = outcome.summary
+            if outcome.result is not None:
+                try:
+                    table_str = outcome.plugin.format_table(outcome.result.raw_payload)
+                    if table_str:
+                        markdown = f"{markdown}\n\n{table_str}"
+                except Exception:
+                    log.warning("format_table() failed for '%s'", outcome.plugin.name)
             ps = PluginSummary(
                 display_name=outcome.plugin.display_name,
-                markdown=outcome.summary,
+                markdown=markdown,
                 ok=True,
                 links=outcome.result.links if outcome.result else [],
             )
@@ -103,6 +121,7 @@ async def run(
         run_duration_s=run_duration,
         model=settings.groq_model,
         total_tokens=groq_queue.total_tokens,
+        exec_summary=exec_summary,
     )
 
     log.info(
@@ -124,7 +143,9 @@ async def run(
             run_duration_s=run_duration,
             model=settings.groq_model,
             total_tokens=groq_queue.total_tokens,
+            exec_summary=exec_summary,
             output_path=settings.jarvis_output_file,
+            output_dir=settings.jarvis_output_dir,
         )
         log.info("No SLACK_BOT_TOKEN configured — digest written to %s", path)
         return

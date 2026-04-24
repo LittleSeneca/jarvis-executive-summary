@@ -24,12 +24,12 @@ You are summarizing stock market data for an executive daily brief. The data bel
 
 **Output format (use exactly this markdown structure):**
 
-### Stocks
-_<one-line market pulse>_
+### :chart_with_upwards_trend: Stocks
+_<one-line market pulse — direction of indices and VIX reading>_
 
-- <market context — indices + VIX>
-- <watchlist bullet 1>
-- <watchlist bullet 2>
-- ...
+*(Price and change data is shown in the table below — do not repeat raw numbers in bullets)*
 
-**Attention:** <optional — only if a significant move, 52-week extreme, or volume spike warrants the reader's eyes today>
+- <only call out tickers with day change > ±3%, 52-week extreme (position > 0.95 or < 0.05), or volume_ratio > 1.5 — one bullet per notable ticker with a brief observation>
+- <news theme if multiple tickers share a driver>
+
+:rotating_light: **Attention:** <optional — only if a significant move, 52-week extreme, or volume spike warrants the reader's eyes today>

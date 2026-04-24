@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import os
 import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -30,13 +29,6 @@ _STANDARD_FRAGMENTS: list[tuple[str, str]] = [
     ("nist-800-53", "NIST"),
     ("aws-control-tower", "ControlTower"),
 ]
-
-
-def _max_findings() -> int:
-    try:
-        return int(os.environ.get("SECURITYHUB_MAX_FINDINGS", "200"))
-    except ValueError:
-        return 200
 
 
 def _parse_standard(product_arn: str) -> str:
@@ -135,19 +127,14 @@ def _aggregate(findings: list[dict]) -> tuple[dict, dict]:
     return by_severity, by_standard
 
 
-def _paginate_findings(client: Any, filters: dict, max_findings: int) -> list[dict]:
+def _paginate_findings(client: Any, filters: dict) -> list[dict]:
     """Synchronous paginator — must be called inside asyncio.to_thread."""
     findings: list[dict] = []
     paginator = client.get_paginator("get_findings")
-    page_iterator = paginator.paginate(
-        Filters=filters,
-        PaginationConfig={"MaxItems": max_findings, "PageSize": min(100, max_findings)},
-    )
+    page_iterator = paginator.paginate(Filters=filters, PaginationConfig={"PageSize": 100})
     for page in page_iterator:
         findings.extend(page.get("Findings", []))
-        if len(findings) >= max_findings:
-            break
-    return findings[:max_findings]
+    return findings
 
 
 class SecurityHubPlugin(DataSourcePlugin):
@@ -161,15 +148,13 @@ class SecurityHubPlugin(DataSourcePlugin):
 
     async def fetch(self, window_hours: int) -> FetchResult:
         """Pull active, non-suppressed findings updated in the last window_hours."""
-        max_findings = _max_findings()
         cutoff = datetime.now(UTC) - timedelta(hours=window_hours)
         cutoff_iso = cutoff.strftime("%Y-%m-%dT%H:%M:%SZ")
 
         log.info(
-            "Fetching SecurityHub findings (window=%dh, cutoff=%s, max=%d)",
+            "Fetching SecurityHub findings (window=%dh, cutoff=%s)",
             window_hours,
             cutoff_iso,
-            max_findings,
         )
 
         try:
@@ -182,7 +167,7 @@ class SecurityHubPlugin(DataSourcePlugin):
 
         try:
             raw_findings = await asyncio.to_thread(
-                _paginate_findings, client, filters, max_findings
+                _paginate_findings, client, filters
             )
         except client.exceptions.InvalidAccessException as exc:
             raise PluginAuthError("SecurityHub access denied: %s" % exc) from exc
@@ -226,14 +211,27 @@ class SecurityHubPlugin(DataSourcePlugin):
             },
         )
 
+    def format_table(self, payload: Any) -> str | None:
+        from tabulate import tabulate
+
+        counts = payload.get("counts_by_severity", {})
+        if not counts:
+            return None
+        order = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFORMATIONAL"]
+        rows = [[sev, counts[sev]] for sev in order if sev in counts]
+        table = tabulate(rows, headers=["Severity", "Count"], tablefmt="outline", colalign=("left", "right"))
+        return f"```\n{table}\n```"
+
     def redact(self, payload: Any) -> Any:
-        """Replace account IDs in ARNs and collapse resource ARNs."""
+        """Replace account IDs in ARNs, collapse resource ARNs, and filter to CRITICAL/HIGH only."""
         if not isinstance(payload, dict):
             return payload
 
         findings = payload.get("findings", [])
         redacted_findings = []
         for finding in findings:
+            if finding.get("severity") not in {"CRITICAL", "HIGH"}:
+                continue
             f = dict(finding)
             f["id"] = _redact_arn(f.get("id", ""))
             f["resources"] = [_collapse_resource_arn(r) for r in f.get("resources", [])]

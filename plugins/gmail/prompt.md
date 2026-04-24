@@ -11,13 +11,13 @@ Gmail payload:
 
 Output format — follow exactly:
 
-### Gmail
+### :envelope: Gmail
 _<one-line headline summarizing inbox volume and anything standout>_
 
 - <Theme or sender group>: <brief summary of messages, noting any requiring a response>
 - <repeat per theme/thread cluster — group related messages together where it helps readability>
 
-**Attention:** <include only if: any message appears to need an urgent response, a time-sensitive deadline is mentioned, or a human (non-automated) sender is waiting. Omit this line entirely if nothing needs immediate action.>
+:rotating_light: **Attention:** <include only if: any message appears to need an urgent response, a time-sensitive deadline is mentioned, or a human (non-automated) sender is waiting. Omit this line entirely if nothing needs immediate action.>
 
 Rules:
 - Summarize every message in the payload — do not filter or skip any.
@@ -26,6 +26,6 @@ Rules:
 - Note any message with is_unread=true that appears to need a reply.
 - Note any message with has_attachments=true if the attachment seems relevant.
 - Do not fabricate subject lines, sender names, or content not present in the payload.
-- Do not include the **Attention** line if nothing needs immediate action.
+- Do not include the Attention line if nothing needs immediate action.
 - Keep each bullet to one or two lines.
 - If message_count is 0, say "No new messages in the inbox window."

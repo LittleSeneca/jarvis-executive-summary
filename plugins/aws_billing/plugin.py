@@ -170,6 +170,8 @@ class AWSBillingPlugin(DataSourcePlugin):
             raise PluginAuthError("AWS Billing auth failed: %s" % exc) from exc
 
         # Date math
+        yesterday = today - timedelta(days=1)
+        yesterday_str = _date_str(yesterday)
         today_str = _date_str(today)
         tomorrow_str = _date_str(today + timedelta(days=1))
         month_start_str = _date_str(date(today.year, today.month, 1))
@@ -200,10 +202,10 @@ class AWSBillingPlugin(DataSourcePlugin):
 
         # --- Three parallel main queries ---
         try:
-            today_results, mtd_results, qtd_results = await asyncio.gather(
+            yesterday_results, mtd_results, qtd_results = await asyncio.gather(
                 asyncio.to_thread(
                     _get_cost_and_usage,
-                    client, today_str, tomorrow_str, "DAILY", group_by_dim, currency,
+                    client, yesterday_str, today_str, "DAILY", group_by_dim, currency,
                 ),
                 asyncio.to_thread(
                     _get_cost_and_usage,
@@ -255,7 +257,7 @@ class AWSBillingPlugin(DataSourcePlugin):
         )
 
         # --- Assemble payload ---
-        today_total = _total_from_results(today_results)
+        yesterday_total = _total_from_results(yesterday_results)
         mtd_total = _total_from_results(mtd_results)
         qtd_total = _total_from_results(qtd_results)
         prior_mtd_total = _total_from_results(prior_mtd_results) if prior_mtd_results else None
@@ -266,15 +268,15 @@ class AWSBillingPlugin(DataSourcePlugin):
                 return None
             return round((current - prior) / prior * 100, 1)
 
-        today_services = _parse_service_amounts(today_results, group_by_dim)
+        yesterday_services = _parse_service_amounts(yesterday_results, group_by_dim)
         mtd_services = _parse_service_amounts(mtd_results, group_by_dim)
         qtd_services = _parse_service_amounts(qtd_results, group_by_dim)
 
         payload: dict[str, Any] = {
-            "today": {
-                "total": today_total,
-                "by_service": today_services,
-                "date": today_str,
+            "yesterday": {
+                "total": yesterday_total,
+                "by_service": yesterday_services[:10],
+                "date": yesterday_str,
             },
             "mtd": {
                 "total": mtd_total,
@@ -295,8 +297,8 @@ class AWSBillingPlugin(DataSourcePlugin):
         }
 
         log.info(
-            "AWS Billing: today=$%.2f, MTD=$%.2f, QTD=$%.2f",
-            today_total,
+            "AWS Billing: yesterday=$%.2f, MTD=$%.2f, QTD=$%.2f",
+            yesterday_total,
             mtd_total,
             qtd_total,
         )
@@ -307,7 +309,7 @@ class AWSBillingPlugin(DataSourcePlugin):
             metadata={
                 "currency": currency,
                 "group_by": group_by_dim,
-                "today": today_str,
+                "yesterday": yesterday_str,
                 "mtd_start": month_start_str,
                 "qtd_start": q_start_str,
                 "fetched_at": datetime.now(UTC).isoformat(),
@@ -321,3 +323,18 @@ class AWSBillingPlugin(DataSourcePlugin):
     def redact(self, payload: Any) -> Any:
         """No sensitive data in cost figures — pass through unchanged."""
         return payload
+
+    def format_table(self, payload: Any) -> str | None:
+        from tabulate import tabulate
+
+        services = payload.get("yesterday", {}).get("by_service", [])
+        if not services:
+            return None
+        rows = [[s["name"], f"${s['amount']:.2f}"] for s in services]
+        table = tabulate(
+            rows,
+            headers=["Service", "Cost"],
+            tablefmt="outline",
+            colalign=("left", "right"),
+        )
+        return f"```\n{table}\n```"

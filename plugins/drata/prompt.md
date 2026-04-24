@@ -1,7 +1,6 @@
 You are producing one section of an executive morning brief. Your task is to summarize the current compliance posture from Drata.
 
 Today is {{ today }}.
-The data covers the last {{ window_hours }} hours.
 Metadata: {{ metadata }}
 
 Drata payload:
@@ -11,20 +10,21 @@ Drata payload:
 
 Output format — follow exactly:
 
-### Drata
-_<one-line compliance posture headline>_
+### :shield: Drata
+_<one-line headline: X of Y monitors failing, Z unhealthy personnel>_
 
-- Failing controls: <count> — <list names if ≤ 3, otherwise top 3 with "and N more">
-- Overdue tasks: <count> — <list assignees and titles if ≤ 3, otherwise summarize>
-- Due-soon tasks (next 7 days): <count> — <list titles and due dates>
-- New evidence requests: <count> — <list titles if any, otherwise "none">
+**Monitors** (<total> total — <by_status breakdown, e.g. "8 FAILED, 110 PASSED, 2 PENDING">):
+*(Failed monitor details are shown in the table below — do not list them individually here)*
+- Summarise in one sentence what the HIGH-priority failures relate to (e.g. "2 HIGH-priority failures: email uniqueness and MFA"). If none failed, say ":white_check_mark: All monitors passing".
 
-**Attention:** <include only if: more than 3 controls are failing, OR any task is overdue by more than 7 days, OR an evidence request is due within 48 hours. Omit this line entirely if nothing is urgent.>
+**Unhealthy personnel** (<count> current employees/contractors):
+- :bust_in_silhouette: <name — failing_checks (human-readable, one line each, up to 10; if more say "and N more")>
+- If none, say ":white_check_mark: No unhealthy personnel"
+
+:rotating_light: **Attention:** <include only if: any HIGH-priority FAILED monitor exists, or unhealthy personnel count > 0. Be specific. Omit this line entirely if nothing triggers.>
 
 Rules:
-- If failing_controls is empty, say "No failing controls".
-- If overdue_tasks is empty, say "No overdue tasks".
-- Calculate days overdue from today's date and the task's due_date field.
-- Do not fabricate control names, assignee names, or dates not present in the payload.
-- Do not include the **Attention** line if there is nothing urgent.
-- Keep each bullet to one line.
+- Only use names, descriptions, and counts that are present in the payload.
+- Do not fabricate monitor names, personnel names, or check names.
+- Keep bullets concise — one line per item.
+- For failing_checks, convert type codes to readable names where obvious (e.g. IDENTITY_MFA → MFA, SECURITY_TRAINING → Security Training, ACCEPTED_POLICIES → Policy Acknowledgment).
