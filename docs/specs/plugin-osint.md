@@ -1,7 +1,7 @@
 # Jarvis Plugin Spec — `osint` (Threat Intel / IoCs)
 
 **Status:** Draft v0.1
-**Owner:** Graham Brooks
+**Owner:** operator-defined
 **Last updated:** 2026-04-23
 **Plugin name:** `osint`
 **Display name:** Threat Intel
@@ -13,7 +13,7 @@
 
 A daily "what new threats entered the public record overnight" section for the morning brief. The plugin pulls **free, keyless-where-possible** open-source threat intelligence and turns it into a short, executive-readable digest of the last 24 hours of IoC and vulnerability activity.
 
-"OSINT" in the Jarvis sense is narrow: **threat intelligence and indicators of compromise**, not geopolitical OSINT. It answers "what new vulnerabilities are being exploited, what new malware/C2 infrastructure appeared, and what should Graham flag for the security team to chase." News-style cybersecurity journalism (Krebs, BleepingComputer, etc.) lives in its sibling plugin [`plugin-cybersec-news.md`](./plugin-cybersec-news.md) — this one deals with raw feeds, not articles.
+"OSINT" in the Jarvis sense is narrow: **threat intelligence and indicators of compromise**, not geopolitical OSINT. It answers "what new vulnerabilities are being exploited, what new malware/C2 infrastructure appeared, and what should the operator flag for the security team to chase." News-style cybersecurity journalism (Krebs, BleepingComputer, etc.) lives in its sibling plugin [`plugin-cybersec-news.md`](./plugin-cybersec-news.md) — this one deals with raw feeds, not articles.
 
 ### Success criteria
 

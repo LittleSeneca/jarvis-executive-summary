@@ -1,7 +1,7 @@
 # Jarvis Plugin Spec — `cybersec_news`
 
 **Status:** Draft v0.1
-**Owner:** Graham Brooks
+**Owner:** operator-defined
 **Last updated:** 2026-04-23
 **Plugin name:** `cybersec_news`
 **Display name:** Cybersec News
