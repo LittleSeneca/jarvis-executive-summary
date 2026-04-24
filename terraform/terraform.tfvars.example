@@ -1,0 +1,26 @@
+# Copy this file to terraform.tfvars and set values for your environment.
+# terraform.tfvars is gitignored — never commit it.
+
+# AWS credentials
+aws_region  = "us-east-1"
+aws_profile = ""          # blank = default credential chain
+
+# Networking — use "default" to auto-discover the account's default VPC,
+# or provide a specific VPC ID (e.g. "vpc-0abc1234def567890")
+vpc_id = "default"
+
+# Schedule — EventBridge cron + IANA timezone
+# cron(Minutes Hours Day-of-month Month Day-of-week Year)
+# Below: 8:00 AM every day, Eastern Time
+schedule_cron     = "cron(0 8 * * ? *)"
+schedule_timezone = "America/New_York"
+
+# ECS Fargate sizing (512 CPU / 1024 MB is plenty for the workload)
+task_cpu    = 512
+task_memory = 1024
+
+# Image tag — "latest" always runs the most recently merged build
+image_tag = "latest"
+
+# CloudWatch log retention
+log_retention_days = 30

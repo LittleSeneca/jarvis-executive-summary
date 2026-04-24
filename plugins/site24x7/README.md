@@ -48,7 +48,7 @@ Two concurrent API calls per run:
     {"name": "prod-api", "type": "URL", "status": "DOWN", "last_polled": "2026-04-24T08:00:00-0400"}
   ],
   "server_performance": [
-    {"name": "a-suite-0-staging.avatarfleet.com", "avg_cpu_pct": 8.7, "avg_mem_pct": 40.3, "max_disk_pct": 41.9}
+    {"name": "your server", "avg_cpu_pct": 8.7, "avg_mem_pct": 40.3, "max_disk_pct": 41.9}
   ],
   "high_disk_servers": []
 }

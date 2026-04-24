@@ -179,7 +179,7 @@ Prompt lives at `plugins/cybersec_news/prompt.md` and must produce output in the
 - **Then** 3–5 additional bullets from single-outlet items that still look meaningful — new vulnerability disclosures, policy/regulatory news, notable incident reporting.
 - **Do not duplicate** items already likely reported in the `Threat Intel` section. If a bullet is essentially _"CVE-2026-12345 published"_ and that CVE appeared in this morning's KEV or NVD pull, drop it — the journalism angle is redundant. (This dedup is advisory in the prompt; the plugin does not cross-reference payloads between plugins.)
 - **Do not editorialize**, do not characterize outlets (no "the left-leaning Guardian" / "the conservative Register" framing — these are tech outlets and the kind of political framing the general `news` plugin also avoids).
-- Under **Attention**, flag: any story explicitly naming AvatarFleet, any story about a vendor AvatarFleet is known to use (the prompt doesn't have a vendor list; the LLM uses context from the payload only), any disclosed active exploitation that isn't already in the KEV, any major breach (>1M records).
+- Under **Attention**, flag: any story explicitly naming your organization, any story about a vendor matching your organization is known to use (the prompt doesn't have a vendor list; the LLM uses context from the payload only), any disclosed active exploitation that isn't already in the KEV, any major breach (>1M records).
 - Keep the total output to ≤ 8 bullets.
 
 ---
