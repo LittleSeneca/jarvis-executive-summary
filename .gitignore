@@ -6,3 +6,10 @@ output/*.md
 .pytest_cache/
 *.egg-info/
 dist/
+
+# Terraform
+terraform/terraform.tfvars
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/.terraform/
+.terraform.lock.hcl

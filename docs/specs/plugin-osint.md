@@ -305,7 +305,7 @@ Prompt lives at `plugins/osint/prompt.md` and must produce output in the [§3.4 
 - Lead with **CISA KEV** — each new entry gets its own bullet with CVE, product, and the ransomware-flag if set. KEV entries are always individually listed.
 - Then **critical CVEs from NVD**: pick the 3–5 highest-CVSS items that aren't already a KEV entry and bullet them with `CVE — score — one-line description`. Do not list all 40.
 - Then **infrastructure activity**: one combined bullet line per source describing volume and any notable clusters (e.g. _"ThreatFox added 38 new AsyncRAT IoCs overnight"_). Do not dump IP lists into the digest — if the operator wants them they'll click through.
-- Under **Attention**, flag: any KEV with `ransomware: true`, any NVD CVE with CVSS ≥ 9.5, any cluster of 10+ IoCs tied to a single malware family, or any OTX pulse whose `targeted_industries` overlaps `["Finance"]` (AvatarFleet's sector). These criteria are spelled out in the prompt text, not in code — the LLM applies them.
+- Under **Attention**, flag: any KEV with `ransomware: true`, any NVD CVE with CVSS ≥ 9.5, any cluster of 10+ IoCs tied to a single malware family, or any OTX pulse whose `targeted_industries` overlaps `["Finance"]` . These criteria are spelled out in the prompt text, not in code — the LLM applies them.
 - Do not editorialize, do not add remediation advice beyond what the source provides verbatim, and do not link to sources that aren't in the payload.
 
 IoC values referenced in the output must remain defanged — the prompt reinforces this since the payload is already defanged.

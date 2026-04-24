@@ -13,7 +13,7 @@ Fetches PR activity across configured orgs and the user's code volume from yeste
 
 | Env var | Default | Description |
 |---------|---------|-------------|
-| `GITHUB_ORGS` | _(none)_ | Comma-separated org names to scope PR searches (e.g. `avatarfleet`) |
+| `GITHUB_ORGS` | _(none)_ | Comma-separated org names to scope PR searches |
 | `GITHUB_REPOS` | _(none)_ | Comma-separated `owner/repo` overrides to restrict scope further |
 | `GITHUB_STALE_PR_DAYS` | `14` | PRs open with no update for this many days are counted as stale |
 
@@ -50,7 +50,7 @@ Total API cost: 2–3 GraphQL requests per run (PR buckets + contributions + ali
   "code_volume_yesterday": {
     "date": "2026-04-22",
     "commits": 11,
-    "repos_touched": ["avatarfleet/jarvis-executive-summary"],
+    "repos_touched": ["littleseneca/jarvis-executive-summary"],
     "additions": 412,
     "deletions": 178,
     "net": 234
