@@ -175,20 +175,23 @@ async def _fetch_nvd(
 ) -> dict:
     """Fetch recent CVEs from NVD CVE 2.0 API."""
     params: dict[str, str] = {
-        "lastModStartDate": window_start.strftime("%Y-%m-%dT%H:%M:%S.000"),
-        "lastModEndDate": now.strftime("%Y-%m-%dT%H:%M:%S.000"),
+        "lastModStartDate": window_start.strftime("%Y-%m-%dT%H:%M:%S.000") + " UTC",
+        "lastModEndDate": now.strftime("%Y-%m-%dT%H:%M:%S.000") + " UTC",
         "resultsPerPage": "2000",
     }
     if nvd_key:
         params["apiKey"] = nvd_key
 
-    # Retry twice on 503
+    # Retry on 503/429/5xx; fail immediately on other 4xx
     last_exc: Exception | None = None
     for attempt in range(3):
         try:
             resp = await client.get(_NVD_URL, params=params)
-            if resp.status_code == 503 and attempt < 2:
-                log.warning("NVD returned 503, retrying in 10s (attempt %d)", attempt + 1)
+            if 400 <= resp.status_code < 500 and resp.status_code != 429:
+                log.error("NVD returned %d — not retrying", resp.status_code)
+                return {"status": "error", "reason": "HTTP %d from NVD API" % resp.status_code}
+            if (resp.status_code == 503 or resp.status_code == 429) and attempt < 2:
+                log.warning("NVD returned %d, retrying in 10s (attempt %d)", resp.status_code, attempt + 1)
                 await asyncio.sleep(10)
                 continue
             resp.raise_for_status()
@@ -210,7 +213,7 @@ async def _fetch_nvd(
         for vuln in data.get("vulnerabilities", []):
             cve = vuln.get("cve", {})
 
-            if cve.get("vulnStatus") == "Rejected":
+            if cve.get("vulnStatus") in ("Rejected", "Awaiting Analysis", "Undergoing Analysis"):
                 continue
 
             # Extract CVSS v3.1 score and severity
@@ -228,12 +231,14 @@ async def _fetch_nvd(
             if score is not None and score < min_cvss:
                 continue
 
-            # English description
+            # English description — skip placeholder/reserved entries
             description = ""
             for desc in cve.get("descriptions", []):
                 if desc.get("lang") == "en":
                     description = desc.get("value", "")
                     break
+            if not description or description.startswith("** "):
+                continue
 
             # Weaknesses
             weaknesses: list[str] = []
@@ -284,7 +289,7 @@ async def _fetch_urlhaus(
 ) -> dict:
     """Fetch recent malicious URLs from abuse.ch URLhaus."""
     try:
-        resp = await client.post(_URLHAUS_URL, data={"limit": str(limit)})
+        resp = await client.get(_URLHAUS_URL, params={"limit": str(limit)})
         resp.raise_for_status()
         data = resp.json()
     except Exception as exc:
@@ -396,7 +401,13 @@ async def _fetch_feodo(
     client: httpx.AsyncClient,
     window_start: datetime,
 ) -> dict:
-    """Fetch recent botnet C2 IPs from abuse.ch Feodo Tracker."""
+    """Fetch botnet C2 IPs from abuse.ch Feodo Tracker.
+
+    Returns all currently-online C2s (the actionable intel), with a flag on
+    entries first seen within the window. first_seen is when the C2 was
+    originally discovered — most entries predate the 24h window, so filtering
+    by first_seen alone would return nothing.
+    """
     try:
         resp = await client.get(_FEODO_URL)
         resp.raise_for_status()
@@ -406,39 +417,64 @@ async def _fetch_feodo(
         return {"status": "error", "reason": str(exc)}
 
     try:
-        items: list[dict] = []
+        online_items: list[dict] = []
+        new_in_window = 0
+        malware_counts: dict[str, int] = {}
+
         for entry in data if isinstance(data, list) else []:
+            status = entry.get("status", "")
+
             first_seen_raw = entry.get("first_seen", "")
-            try:
-                first_seen = datetime.fromisoformat(first_seen_raw).replace(tzinfo=UTC)
-            except ValueError:
+            first_seen: datetime | None = None
+            for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"):
                 try:
-                    first_seen = datetime.strptime(first_seen_raw, "%Y-%m-%d %H:%M:%S").replace(
-                        tzinfo=UTC
-                    )
+                    first_seen = datetime.strptime(first_seen_raw, fmt).replace(tzinfo=UTC)
+                    break
                 except ValueError:
                     continue
 
-            if first_seen < window_start:
+            is_new = first_seen is not None and first_seen >= window_start
+
+            malware = entry.get("malware") or "Unknown"
+            malware_counts[malware] = malware_counts.get(malware, 0) + 1
+
+            if is_new:
+                new_in_window += 1
+
+            if status != "online":
                 continue
 
-            items.append(
+            online_items.append(
                 {
                     "ip_address": _defang(entry.get("ip_address", "")),
                     "port": entry.get("port"),
-                    "status": entry.get("status"),
                     "hostname": entry.get("hostname"),
-                    "malware": entry.get("malware"),
+                    "malware": malware,
                     "first_seen": first_seen_raw,
                     "last_online": entry.get("last_online"),
                     "asn": entry.get("as_number"),
                     "as_name": entry.get("as_name"),
                     "country": entry.get("country"),
+                    "new_in_window": is_new,
                 }
             )
 
-        log.info("Feodo Tracker: %d entries in window", len(items))
-        return {"status": "ok", "count": len(items), "items": items}
+        # Prioritise newly discovered, then cap to limit token spend
+        online_items.sort(key=lambda x: (not x["new_in_window"], x["malware"]))
+        capped = online_items[:50]
+
+        log.info(
+            "Feodo Tracker: %d online C2s (%d new in window)",
+            len(online_items),
+            new_in_window,
+        )
+        return {
+            "status": "ok",
+            "total_online": len(online_items),
+            "new_in_window": new_in_window,
+            "malware_counts": malware_counts,
+            "items": capped,
+        }
     except Exception as exc:
         log.exception("Feodo processing failed")
         return {"status": "error", "reason": str(exc)}
@@ -465,7 +501,14 @@ async def _fetch_otx(
         items: list[dict] = []
         for pulse in data.get("results", []):
             description = (pulse.get("description") or "")[:500]
-            refs = [r.get("url") for r in (pulse.get("references") or [])[:2] if r.get("url")]
+            raw_refs = pulse.get("references") or []
+            # OTX references may be plain strings or {"url": "..."} dicts
+            refs = [
+                (r if isinstance(r, str) else r.get("url", ""))
+                for r in raw_refs[:2]
+                if r
+            ]
+            refs = [r for r in refs if r]
 
             items.append(
                 {
@@ -501,7 +544,7 @@ class OSINTPlugin(DataSourcePlugin):
     display_name = "Threat Intel"
     required_env_vars: list[str] = []
     temperature = 0.1
-    max_tokens = 600
+    max_tokens = 900
 
     async def fetch(self, window_hours: int) -> FetchResult:
         """Fetch the last ``window_hours`` of threat intelligence from all enabled sources."""
@@ -545,6 +588,8 @@ class OSINTPlugin(DataSourcePlugin):
             async def _maybe_urlhaus() -> dict:
                 if "urlhaus" not in enabled:
                     return {"status": "skipped", "reason": "not in OSINT_SOURCES"}
+                if clients.urlhaus is None:
+                    return {"status": "skipped", "reason": "no auth key"}
                 return await _fetch_urlhaus(
                     clients.urlhaus,
                     window_start,
@@ -596,11 +641,11 @@ class OSINTPlugin(DataSourcePlugin):
         finally:
             if clients is not None:
                 # Close all open clients
-                for field_name in ("kev", "nvd", "urlhaus", "feodo"):
+                for field_name in ("kev", "nvd", "feodo"):
                     c = getattr(clients, field_name, None)
                     if c is not None:
                         await c.aclose()
-                for field_name in ("threatfox", "otx"):
+                for field_name in ("urlhaus", "threatfox", "otx"):
                     c = getattr(clients, field_name, None)
                     if c is not None:
                         await c.aclose()
@@ -672,3 +717,29 @@ class OSINTPlugin(DataSourcePlugin):
     def redact(self, payload: Any) -> Any:
         """No-op — threat intel is public by construction."""
         return payload
+
+    def format_table(self, payload: Any) -> str | None:
+        from tabulate import tabulate
+
+        sources = payload.get("sources", {})
+        kev = sources.get("cisa_kev", {})
+        items = kev.get("items", []) if kev.get("status") == "ok" else []
+        if not items:
+            return None
+
+        rows = [
+            [
+                item.get("cve", "—"),
+                f"{item.get('vendor', '')} / {item.get('product', '')}",
+                item.get("due", "—"),
+                "Yes" if item.get("ransomware") else "No",
+            ]
+            for item in items
+        ]
+        table = tabulate(
+            rows,
+            headers=["CVE", "Product", "Due Date", "Ransomware"],
+            tablefmt="outline",
+            colalign=("left", "left", "left", "left"),
+        )
+        return f"```\n{table}\n```"

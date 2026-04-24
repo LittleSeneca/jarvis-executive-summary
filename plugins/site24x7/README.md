@@ -1,6 +1,6 @@
 # Site24x7 Plugin
 
-Fetches alert logs, current monitor status, and SLA summary from the [Site24x7 API](https://www.site24x7.com/help/api/) using Zoho OAuth2.
+Fetches open alerts, server CPU/memory averages, and high-disk utilization from the [Site24x7 API](https://www.site24x7.com/help/api/) using Zoho OAuth2.
 
 ## Credentials
 
@@ -14,55 +14,42 @@ Fetches alert logs, current monitor status, and SLA summary from the [Site24x7 A
 ### First-time setup
 
 1. Register a **Server-based Application** in the [Zoho API Console](https://api-console.zoho.com/).
-2. Set the redirect URI to `https://www.zoho.com/site24x7`.
-3. Run the setup script (add `--dc eu` etc. for non-US datacenters):
+2. Add `https://www.zoho.com/site24x7` as a redirect URI.
+3. Run the setup script:
 
 ```bash
 python plugins/site24x7/setup.py
 ```
 
-4. Visit the printed URL, authorize access, copy the `code` parameter from the redirect URL, and paste it back.
+4. Visit the printed URL, authorize, copy the `code` from the redirect URL's address bar (the page will show "resource not found" — that's expected), and paste it back.
 5. Copy the printed `SITE24X7_ZOHO_REFRESH_TOKEN` into your `.env`.
-
-## Datacenter mapping
-
-| `SITE24X7_DATACENTER` | Token endpoint | API base URL |
-|------------------------|----------------|--------------|
-| `us` (default) | `accounts.zoho.com` | `www.site24x7.com/api` |
-| `eu` | `accounts.zoho.eu` | `www.site24x7.eu/api` |
-| `in` | `accounts.zoho.in` | `www.site24x7.in/api` |
-| `au` | `accounts.zoho.com.au` | `www.site24x7.com.au/api` |
-| `cn` | `accounts.zoho.com.cn` | `www.site24x7.cn/api` |
-| `jp` | `accounts.zoho.jp` | `www.site24x7.jp/api` |
 
 ## What it fetches
 
-Three concurrent API calls per run:
+Two concurrent API calls per run:
 
 | Endpoint | Purpose |
 |----------|---------|
-| `GET /alert_logs/summary?period=1d` | Alert events in the last 24 hours |
-| `GET /current_status` | All monitors; filtered to DOWN or TROUBLE |
-| `GET /sla/summary` | SLA entries; filtered to breached or at-risk |
+| `GET /current_status` | All monitors; filtered to DOWN/TROUBLE/UNKNOWN for open alerts |
+| `GET /reports/performance?period=1` | 24h time-series for the SERVER group; averaged per server |
+
+## Notes
+
+- Only server monitors with the Site24x7 agent installed will have CPU/memory/disk data.
+- Server monitors that are URL-only health checks appear in the SERVER group but show no metric data and are excluded.
+- Disk threshold for high-utilization alert is 80%.
 
 ## Payload shape
 
 ```json
 {
   "window_hours": 24,
-  "alerts": [
-    { "monitor": "prod-api", "type": "DOWN", "status": "Critical", "occurred": "2026-04-23T03:12:00Z" }
+  "open_alerts": [
+    {"name": "prod-api", "type": "URL", "status": "DOWN", "last_polled": "2026-04-24T08:00:00-0400"}
   ],
-  "down_monitors": [
-    { "name": "prod-api", "type": "URL", "status": "DOWN", "last_checked": "2026-04-23T08:00:00Z", "unit": "" }
+  "server_performance": [
+    {"name": "a-suite-0-staging.avatarfleet.com", "avg_cpu_pct": 8.7, "avg_mem_pct": 40.3, "max_disk_pct": 41.9}
   ],
-  "sla_at_risk": [
-    { "monitor": "prod-api", "sla": "99.9% Uptime SLA", "availability_pct": 99.1, "target_pct": 99.9, "breached": true }
-  ]
+  "high_disk_servers": []
 }
 ```
-
-## Notes
-
-- The Zoho access token is valid for 1 hour; Jarvis always exchanges a fresh one at startup using the stored refresh token.
-- `redact()` is a no-op for this plugin — monitor names and availability figures are not considered sensitive.

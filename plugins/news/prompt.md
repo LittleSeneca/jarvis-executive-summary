@@ -17,11 +17,11 @@ Each item includes `source_count` — the number of outlets that independently c
 
 **Output format (use exactly this markdown structure):**
 
-### News
-_<one-line summary of today's top story>_
+### :newspaper: News
+_<one-line summary of today's top story — bold the key subject>_
 
-- <story> (<outlet 1>, <outlet 2>, ...)
-- <story> (<outlet>)
+- **<key subject>**: <story summary> (<outlet 1>, <outlet 2>, ...)
+- **<key subject>**: <story summary> (<outlet>)
 - ...
 
-**Attention:** <optional — only if something needs the reader's eyes today>
+:rotating_light: **Attention:** <optional — only if something needs the reader's eyes today; bold the specific topic or actor that makes it urgent>

@@ -344,3 +344,38 @@ class StocksPlugin(DataSourcePlugin):
     def redact(self, payload: Any) -> Any:
         """No redaction required — stock data is public market information."""
         return payload
+
+    def format_table(self, payload: Any) -> str | None:
+        from tabulate import tabulate
+
+        def _price(v: float | None) -> str:
+            return f"${v:,.2f}" if v is not None else "—"
+
+        def _pct(v: float | None) -> str:
+            if v is None:
+                return "—"
+            sign = "+" if v >= 0 else ""
+            return f"{sign}{v:.2f}%"
+
+        indices = payload.get("indices", [])
+        tickers = payload.get("tickers", [])
+        if not indices and not tickers:
+            return None
+
+        parts: list[str] = []
+
+        if indices:
+            rows = [
+                [i["symbol"], i.get("name", i["symbol"]), _price(i.get("last")), _pct(i.get("change_pct_day"))]
+                for i in indices
+            ]
+            parts.append(tabulate(rows, headers=["Index", "Name", "Price", "Day %"], tablefmt="outline", colalign=("left", "left", "right", "right")))
+
+        if tickers:
+            rows = [
+                [t["symbol"], t.get("name", t["symbol"]), _price(t.get("last")), _pct(t.get("change_pct_day")), _pct(t.get("change_pct_ytd"))]
+                for t in tickers
+            ]
+            parts.append(tabulate(rows, headers=["Symbol", "Name", "Price", "Day %", "YTD %"], tablefmt="outline", colalign=("left", "left", "right", "right", "right")))
+
+        return "```\n" + "\n\n".join(parts) + "\n```"

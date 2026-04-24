@@ -1,22 +1,15 @@
-"""Authentication for the Weather plugin."""
-
-import os
+"""Authentication for the Weather plugin — Open-Meteo requires no API key."""
 
 import httpx
 
-from jarvis.core.exceptions import PluginAuthError
-
 __all__ = ["get_authenticated_client"]
 
-_BASE_URL = "https://api.openweathermap.org"
+_USER_AGENT = "Jarvis-Executive-Summary/0.1 (personal digest; github.com/LittleSeneca/jarvis-executive-summary)"
 
 
 def get_authenticated_client() -> httpx.AsyncClient:
-    """Return an AsyncClient with the OpenWeatherMap API key as a default query param."""
-    api_key = os.environ.get("WEATHER_API_KEY", "").strip()
-    if not api_key:
-        raise PluginAuthError("WEATHER_API_KEY is not set")
+    """Return a plain AsyncClient — Open-Meteo and Nominatim require no credentials."""
     return httpx.AsyncClient(
-        base_url=_BASE_URL,
-        params={"appid": api_key},
+        headers={"User-Agent": _USER_AGENT},
+        timeout=15.0,
     )

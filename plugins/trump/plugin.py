@@ -34,7 +34,7 @@ class TrumpPlugin(DataSourcePlugin):
     display_name = "Trump / Truth Social"
     required_env_vars = []
     temperature = 0.2
-    max_tokens = 500
+    max_tokens = 600
 
     async def fetch(self, window_hours: int) -> FetchResult:
         """Pull Truth Social posts from the last `window_hours` and return them."""

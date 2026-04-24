@@ -11,20 +11,19 @@ Site24x7 payload:
 
 Output format — follow exactly:
 
-### Site24x7
-_<one-line headline: overall infrastructure health and any standout issue>_
+### :satellite: Site24x7
+_<one-line headline: X open alerts, X servers reporting, any high-disk issues>_
 
-- Alerts (last {{ window_hours }}h): <count> — <list monitor names and alert types if ≤ 3, otherwise summarize top issues>
-- Currently down: <count monitors> — <list names and types, or "None" if empty>
-- SLA at risk: <count> — <list monitor name, current vs target availability, breached status, or "None" if empty>
+**Open alerts** (<count> monitors currently down or in trouble):
+- <list each: :rotating_light: name — status (type), last polled time. If none, say ":white_check_mark: All monitors UP">
 
-**Attention:** <include only if: any monitor is currently DOWN, or any SLA is breached. Omit this line entirely if everything is healthy.>
+**High disk utilization** (>80%):
+- <list each server from high_disk_servers: :warning: name — max_disk_pct%. If none, say ":white_check_mark: None">
+
+:rotating_light: **Attention:** <include only if: any open alert exists, or any server has avg_cpu_pct > 85, or any server has avg_mem_pct > 90, or any high_disk_servers entry exists. Be specific. Omit this line entirely if nothing triggers.>
 
 Rules:
-- If alerts is empty, say "No alerts in the window".
-- If down_monitors is empty, say "None currently down".
-- If sla_at_risk is empty, say "No SLA breaches or risks".
-- For SLA entries, show availability as a percentage (e.g. 99.1%) and note if breached=true.
-- Do not fabricate monitor names, availability figures, or dates not present in the payload.
-- Do not include the **Attention** line if everything is healthy.
-- Keep each bullet to one or two lines.
+- Only use names, values, and statuses present in the payload.
+- Do not fabricate server names or metric values.
+- Round percentages to one decimal place.
+- Do not include the Attention line if everything is healthy.

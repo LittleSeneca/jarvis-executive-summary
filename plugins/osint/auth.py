@@ -13,6 +13,7 @@ import httpx
 __all__ = ["OSINTClients", "get_authenticated_clients"]
 
 _TIMEOUT = 30.0
+_OTX_TIMEOUT = 15.0  # OTX is slow; fail fast rather than blocking the whole plugin
 _USER_AGENT = "Jarvis/1.0 (+https://github.com/LittleSeneca/jarvis-executive-summary; osint-plugin)"
 
 
@@ -22,7 +23,7 @@ class OSINTClients:
 
     kev: httpx.AsyncClient
     nvd: httpx.AsyncClient
-    urlhaus: httpx.AsyncClient
+    urlhaus: httpx.AsyncClient | None  # None if OSINT_URLHAUS_API_KEY not set
     threatfox: httpx.AsyncClient | None  # None if OSINT_THREATFOX_API_KEY not set
     feodo: httpx.AsyncClient
     otx: httpx.AsyncClient | None  # None if OSINT_OTX_API_KEY not set
@@ -34,6 +35,7 @@ async def get_authenticated_clients() -> OSINTClients:
     Sources with optional keys return None when the key is absent.
     """
     nvd_key = os.environ.get("OSINT_NVD_API_KEY", "").strip()
+    urlhaus_key = os.environ.get("OSINT_URLHAUS_API_KEY", "").strip()
     threatfox_key = os.environ.get("OSINT_THREATFOX_API_KEY", "").strip()
     otx_key = os.environ.get("OSINT_OTX_API_KEY", "").strip()
 
@@ -46,7 +48,13 @@ async def get_authenticated_clients() -> OSINTClients:
         nvd_headers["apiKey"] = nvd_key
     nvd = httpx.AsyncClient(headers=nvd_headers, timeout=_TIMEOUT, follow_redirects=True)
 
-    urlhaus = httpx.AsyncClient(headers=base_headers, timeout=_TIMEOUT, follow_redirects=True)
+    urlhaus: httpx.AsyncClient | None = None
+    if urlhaus_key:
+        urlhaus = httpx.AsyncClient(
+            headers={**base_headers, "Auth-Key": urlhaus_key},
+            timeout=_TIMEOUT,
+            follow_redirects=True,
+        )
 
     threatfox: httpx.AsyncClient | None = None
     if threatfox_key:
@@ -62,7 +70,7 @@ async def get_authenticated_clients() -> OSINTClients:
     if otx_key:
         otx = httpx.AsyncClient(
             headers={**base_headers, "X-OTX-API-KEY": otx_key},
-            timeout=_TIMEOUT,
+            timeout=_OTX_TIMEOUT,
             follow_redirects=True,
         )
 

@@ -11,7 +11,7 @@ from jarvis.core.exceptions import GroqError
 from jarvis.core.groq_queue import GroqQueue, InferenceJob
 from jarvis.core.plugin import DataSourcePlugin, FetchResult
 
-__all__ = ["summarize", "default_chunker"]
+__all__ = ["summarize", "synthesize_executive_summary", "default_chunker"]
 
 log = logging.getLogger(__name__)
 
@@ -90,6 +90,43 @@ async def summarize(
         + "\n\n---\n\n".join(chunk_summaries)
     )
     return await _submit(plugin, reduce_prompt, model, queue)
+
+
+_EXEC_SUMMARY_PROMPT = """\
+You are writing the opening section of a morning executive brief. \
+The sections below are individual summaries from multiple data sources.
+
+Produce 5-8 concise bullet points — one per primary thing the reader needs to know today. \
+Lead with urgent items (security incidents, outages, compliance failures) before routine ones. \
+Each bullet must be self-contained and actionable. No intro sentence, no closing sentence, \
+no headers — just the bullets.
+
+Formatting rules (Slack mrkdwn):
+- Start each bullet with a bold category label: "- *Category:* content"
+- Within the content, bold any specific names, numbers, or items that are the critical callout: \
+  e.g. "- *Security:* *6 CRITICAL* findings for *CVE-2026-31789* require same-day remediation"
+- Use *asterisks* for bold — do not use **double asterisks**
+
+{summaries}
+"""
+
+
+async def synthesize_executive_summary(
+    plugin_summaries: list[str],
+    queue: GroqQueue,
+    model: str,
+) -> str:
+    """Combine all plugin summaries into a short executive overview via Groq."""
+    combined = "\n\n---\n\n".join(plugin_summaries)
+    prompt = _EXEC_SUMMARY_PROMPT.format(summaries=combined)
+    job = InferenceJob(
+        plugin_name="executive_summary",
+        prompt=prompt,
+        model=model,
+        temperature=0.3,
+        max_tokens=300,
+    )
+    return await queue.submit(job)
 
 
 async def _submit(plugin: DataSourcePlugin, prompt: str, model: str, queue: GroqQueue) -> str:

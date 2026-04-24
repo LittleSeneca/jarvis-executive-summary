@@ -1,13 +1,13 @@
-"""Weather data-source plugin — current conditions and two-day outlook."""
+"""Weather data-source plugin — current conditions and two-day outlook via Open-Meteo."""
 
 import asyncio
 import logging
 import os
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 import httpx
 
-from jarvis.core.exceptions import PluginAuthError, PluginFetchError
+from jarvis.core.exceptions import PluginFetchError
 from jarvis.core.plugin import DataSourcePlugin, FetchResult
 
 from .auth import get_authenticated_client
@@ -16,16 +16,34 @@ __all__ = ["WeatherPlugin"]
 
 log = logging.getLogger(__name__)
 
+_NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+_OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
+
+# WMO Weather Interpretation Codes → human-readable description
+_WMO = {
+    0: "Clear sky",
+    1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
+    45: "Fog", 48: "Rime fog",
+    51: "Light drizzle", 53: "Moderate drizzle", 55: "Dense drizzle",
+    61: "Light rain", 63: "Moderate rain", 65: "Heavy rain",
+    71: "Light snow", 73: "Moderate snow", 75: "Heavy snow",
+    77: "Snow grains",
+    80: "Light showers", 81: "Moderate showers", 82: "Heavy showers",
+    85: "Light snow showers", 86: "Heavy snow showers",
+    95: "Thunderstorm",
+    96: "Thunderstorm with hail", 99: "Thunderstorm with heavy hail",
+}
+
 _IMPERIAL_LABELS = {"temp": "F", "wind": "mph"}
 _METRIC_LABELS = {"temp": "C", "wind": "m/s"}
 
 
 class WeatherPlugin(DataSourcePlugin):
-    """Fetch current conditions and two-day forecast from OpenWeatherMap."""
+    """Fetch current conditions and two-day forecast from Open-Meteo (no API key required)."""
 
     name = "weather"
     display_name = "Weather"
-    required_env_vars = ["WEATHER_ZIP_CODE", "WEATHER_API_KEY"]
+    required_env_vars = ["WEATHER_ZIP_CODE"]
     temperature = 0.3
     max_tokens = 150
 
@@ -36,60 +54,58 @@ class WeatherPlugin(DataSourcePlugin):
         units = os.environ.get("WEATHER_UNITS", "imperial").strip().lower() or "imperial"
 
         if not zip_code:
-            raise PluginAuthError("WEATHER_ZIP_CODE is not set")
+            raise PluginFetchError("WEATHER_ZIP_CODE is not set")
 
-        location_q = f"{zip_code},{country}"
         unit_labels = _IMPERIAL_LABELS if units == "imperial" else _METRIC_LABELS
 
         try:
-            client = get_authenticated_client()
-        except PluginAuthError:
-            raise
-
-        try:
-            async with client:
-                current, forecast = await _fetch_both(client, location_q, units)
-        except PluginAuthError:
+            async with get_authenticated_client() as client:
+                lat, lon, city = await _geocode(client, zip_code, country)
+                data = await _fetch_weather(client, lat, lon, units)
+        except PluginFetchError:
             raise
         except httpx.HTTPStatusError as exc:
-            if exc.response.status_code == 401:
-                raise PluginAuthError("OpenWeatherMap rejected the API key (401)") from exc
-            raise PluginFetchError(
-                "OpenWeatherMap HTTP error %s" % exc.response.status_code
-            ) from exc
+            raise PluginFetchError("Weather API HTTP error %s" % exc.response.status_code) from exc
         except httpx.RequestError as exc:
-            raise PluginFetchError("Network error reaching OpenWeatherMap: %s" % exc) from exc
+            raise PluginFetchError("Network error fetching weather: %s" % exc) from exc
         except Exception as exc:
             log.exception("Unexpected error in weather fetch")
             raise PluginFetchError("Unexpected error in weather fetch: %s" % exc) from exc
 
-        city = current.get("name", zip_code)
-        sys_info = current.get("sys", {})
-        resolved_country = sys_info.get("country", country)
-
-        now_main = current.get("main", {})
-        now_wind = current.get("wind", {})
-        now_weather = current.get("weather", [{}])[0]
+        current = data["current"]
+        daily = data["daily"]
 
         now_block = {
-            "temp": round(now_main.get("temp", 0)),
-            "feels_like": round(now_main.get("feels_like", 0)),
-            "conditions": now_weather.get("description", "").capitalize(),
-            "wind": round(now_wind.get("speed", 0)),
-            "humidity": now_main.get("humidity", 0),
+            "temp": round(current["temperature_2m"]),
+            "feels_like": round(current["apparent_temperature"]),
+            "conditions": _WMO.get(current["weather_code"], "Unknown"),
+            "wind": round(current["wind_speed_10m"]),
+            "humidity": current["relative_humidity_2m"],
         }
 
-        today_block, tomorrow_block = _build_day_buckets(forecast.get("list", []))
+        # daily arrays are indexed [0]=today, [1]=tomorrow
+        today_block = {
+            "high": round(daily["temperature_2m_max"][0]),
+            "low": round(daily["temperature_2m_min"][0]),
+            "precip_chance": round(daily["precipitation_probability_max"][0] / 100, 2),
+            "summary": _WMO.get(daily["weather_code"][0], "Unknown"),
+        }
+        tomorrow_block = {
+            "high": round(daily["temperature_2m_max"][1]),
+            "low": round(daily["temperature_2m_min"][1]),
+            "precip_chance": round(daily["precipitation_probability_max"][1] / 100, 2),
+            "summary": _WMO.get(daily["weather_code"][1], "Unknown"),
+        }
 
         payload = {
-            "location": {"zip": zip_code, "city": city, "country": resolved_country},
+            "location": {"zip": zip_code, "city": city, "country": country},
             "units": unit_labels,
             "now": now_block,
             "today": today_block,
             "tomorrow": tomorrow_block,
         }
 
-        log.info("Weather fetch complete for %s, %s", zip_code, resolved_country)
+        log.info("Weather fetch complete for %s (%s, %s)", zip_code, city, country)
         return FetchResult(
             source_name=self.display_name,
             raw_payload=payload,
@@ -102,72 +118,50 @@ class WeatherPlugin(DataSourcePlugin):
         )
 
 
-async def _fetch_both(
-    client: httpx.AsyncClient, location_q: str, units: str
-) -> tuple[dict, dict]:
-    """Fetch current weather and forecast in parallel."""
-    params = {"zip": location_q, "units": units}
-
-    async def _get_current():
-        resp = await client.get("/data/2.5/weather", params=params)
-        resp.raise_for_status()
-        return resp.json()
-
-    async def _get_forecast():
-        resp = await client.get("/data/2.5/forecast", params=params)
-        resp.raise_for_status()
-        return resp.json()
-
-    current, forecast = await asyncio.gather(_get_current(), _get_forecast())
-    return current, forecast
-
-
-def _build_day_buckets(forecast_list: list[dict]) -> tuple[dict, dict]:
-    """Reduce 3-hour forecast slots into today and tomorrow day summaries."""
-    now_utc = datetime.now(UTC)
-    today_date = now_utc.date()
-    tomorrow_date = today_date + timedelta(days=1)
-
-    today_slots: list[dict] = []
-    tomorrow_slots: list[dict] = []
-
-    for slot in forecast_list:
-        dt = datetime.fromtimestamp(slot["dt"], tz=UTC)
-        if dt.date() == today_date:
-            today_slots.append(slot)
-        elif dt.date() == tomorrow_date:
-            tomorrow_slots.append(slot)
-
-    return _summarise_slots(today_slots, fallback_label="today"), _summarise_slots(
-        tomorrow_slots, fallback_label="tomorrow"
+async def _geocode(client: httpx.AsyncClient, zip_code: str, country: str) -> tuple[float, float, str]:
+    """Resolve a ZIP code to (lat, lon, city) via Nominatim."""
+    resp = await client.get(
+        _NOMINATIM_URL,
+        params={
+            "postalcode": zip_code,
+            "countrycodes": country.lower(),
+            "format": "json",
+            "limit": 1,
+            "addressdetails": 1,
+        },
     )
+    resp.raise_for_status()
+    results = resp.json()
+    if not results:
+        raise PluginFetchError("No geocoding results for ZIP %s" % zip_code)
+
+    hit = results[0]
+    lat = float(hit["lat"])
+    lon = float(hit["lon"])
+
+    addr = hit.get("address", {})
+    city = addr.get("city") or addr.get("town") or addr.get("village") or addr.get("county") or zip_code
+
+    return lat, lon, city
 
 
-def _summarise_slots(slots: list[dict], fallback_label: str) -> dict:
-    """Collapse a list of 3-hour forecast slots into a single day summary."""
-    if not slots:
-        return {"high": None, "low": None, "precip_chance": None, "summary": "No data"}
+async def _fetch_weather(client: httpx.AsyncClient, lat: float, lon: float, units: str) -> dict:
+    """Fetch current conditions and two-day daily forecast from Open-Meteo."""
+    temp_unit = "fahrenheit" if units == "imperial" else "celsius"
+    wind_unit = "mph" if units == "imperial" else "ms"
 
-    temps = [s["main"]["temp"] for s in slots]
-    pop_values = [s.get("pop", 0.0) for s in slots]
-    descriptions = [s["weather"][0]["description"] for s in slots if s.get("weather")]
-
-    high = round(max(temps))
-    low = round(min(temps))
-    precip_chance = round(max(pop_values), 2)
-
-    # Pick the most representative description (mode of midday slots, then fallback to first)
-    midday_slots = [s for s in slots if 10 <= datetime.fromtimestamp(s["dt"], tz=UTC).hour <= 15]
-    if midday_slots:
-        summary = midday_slots[0]["weather"][0]["description"].capitalize()
-    elif descriptions:
-        summary = descriptions[len(descriptions) // 2].capitalize()
-    else:
-        summary = "Unknown"
-
-    return {
-        "high": high,
-        "low": low,
-        "precip_chance": precip_chance,
-        "summary": summary,
-    }
+    resp = await client.get(
+        _OPEN_METEO_URL,
+        params={
+            "latitude": lat,
+            "longitude": lon,
+            "current": "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m",
+            "daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code",
+            "temperature_unit": temp_unit,
+            "wind_speed_unit": wind_unit,
+            "timezone": "auto",
+            "forecast_days": 2,
+        },
+    )
+    resp.raise_for_status()
+    return resp.json()
